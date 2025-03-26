@@ -1,9 +1,50 @@
 import tkinter as tk
 from kamera import uruchom_kamere
 from facelet import naklejka
+from kociemba import Kociemba
 
 #Dostepne kolory
-kolor_scianek = ['white', 'green', 'red', 'orange', 'blue', 'yellow']
+kolor_scianek = ['white', 'green', 'orange', 'red', 'blue', 'yellow']
+
+#UKŁAD ŚCIAN KOSTKI GÓRNA LEWA PRAWA FRONT TYLNIA ETC
+#      U
+#    L F R B
+#      D
+
+#Kociemba patern
+#UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB'
+
+#Najpierw:
+#U - gorna
+#R - prawa 
+#F - front
+#D - dolna
+#L - lewa
+#B - tylna
+
+#Nasz patern:
+#Kolory scianki: UUUUUUUUUFFFFFFFFFLLLLLLLLLRRRRRRRRRBBBBBBBBBDDDDDDDDD
+
+#U nas:
+
+#U - gorna - poprawnie
+#F - front - powinnen być PRAWO
+#L - lewo - powinno byc FRONT
+#R - prawo - powinne byc DOL
+#B - tyl - powinnien byc LEWO
+#D - dol - powinne byc BACK 
+
+
+
+
+mapowanie_kolorow = {
+    'white': 'U',
+    'red': 'R',
+    'green': 'F',
+    'yellow':'D',
+    'orange': 'L',
+    'blue': 'B'
+}
 
 #zmienna globalna przechowujaca aktualny kolor
 aktualny_kolor = "white"
@@ -21,6 +62,7 @@ def generuj_naklejke(canvas, start_x, start_y, kolor="white"):
             y = start_y + i * (rozmiar + margin)
             kwadrat = canvas.create_rectangle(x, y, x + rozmiar, y + rozmiar, fill=kolor, outline="black")
 
+            canvas.itemconfig(kwadrat, fill=kolor)  # Wymuszenie ustawienia koloru
             naklejki.append(kwadrat)        #Dodaje ID naklejki do listy
 
             # Poprawione - używa poprawnej funkcji
@@ -28,27 +70,52 @@ def generuj_naklejke(canvas, start_x, start_y, kolor="white"):
 
     return naklejki
 
-
+#Funkcja do wypelnienia kwadracika kolorkiem (naklejki)
 def wypelnij(event, canvas, kwadrat):
 
     global aktualny_kolor
     item = canvas.find_closest(event.x, event.y)[0]  # Znajduje najbliższy obiekt
     canvas.itemconfig(item, fill=aktualny_kolor)  # Zmienia jego kolor
 
-
-
+#Funkcja do zmiany kolorow pojedynczej naklejki
 def zmien_kolor(nowy_kolor):
 
     global aktualny_kolor
     aktualny_kolor = nowy_kolor
 
+#Funkcja do odczytywanie kolorow z naklejek dla kociemba.py w celu rozwiazania kostki
+def odczytaj_kolor(canvas, naklejki):
+    kolory = []
+    for naklejka in naklejki:
+        kolor = canvas.itemcget(naklejka, "fill")       #Pobiera aktualny kolor naklejki
+
+        #print(f"ID Naklejki: {naklejka}, Kolor: {kolor}")  # Debugowanie
+
+        kolory.append(mapowanie_kolorow.get(kolor, "?"))  # Mapowanie na oznaczenie Kociemby
+        
+
+    return "".join(kolory)      #Łaczy w ciąg znaków
+
+#Pokazuje cubestring (kod_kostki) po wprowadzeniu kolorow
+def pokaz_kolor(canvas, wszystkie_naklejki):
+    wszystkie_naklejki_flat = [id for sciana in wszystkie_naklejki for id in sciana]  # Spłaszczenie listy
+    kod_kostki = odczytaj_kolor(canvas, wszystkie_naklejki_flat)
+    print("Kolory scianki:", kod_kostki)
+    
+
 # Funkcja do dodawania przycisków
-def dodaj_przycisk(root, canvas):       
+def dodaj_przycisk(root, canvas, wszystkie_naklejki):       
     kamera = tk.Button(root, text="Uruchom kamerę", command=lambda: uruchom_kamere()) 
     kamera.pack(pady=5)
 
     facelet = tk.Button(root, text="Wyswietl naklejke", command=lambda: naklejka())
     facelet.pack(pady=5)
+
+    pokaz_kolory = tk.Button(root, text="Pokaz kod kostki", command=lambda: pokaz_kolor(canvas, wszystkie_naklejki))
+    pokaz_kolory.pack(pady=5)
+
+    rozwiaz = tk.Button(root, text="Rozwiaz kostke", command=lambda: Kociemba())
+    rozwiaz.pack(pady=5)
 
 # Funkcja do dodawania kwadracików z kolorami
 def dodaj_kwadracik(root):
@@ -78,14 +145,16 @@ def main():
 
     # Rysowanie pustych ścianek kostki (teraz są one niezależne)
     naklejki1 = generuj_naklejke(canvas, 220, 50, 'white')  # 1. Ścianka
-    naklejki2 = generuj_naklejke(canvas, 220, 220, 'green')  # 2. Ścianka
-    naklejki3 = generuj_naklejke(canvas, 50, 220, 'red')  # 3. Ścianka
-    naklejki4 = generuj_naklejke(canvas, 390, 220, 'orange')  # 4. Ścianka
-    naklejki5 = generuj_naklejke(canvas, 560, 220, 'blue')  # 5. Ścianka
-    naklejki6 = generuj_naklejke(canvas, 220, 390, 'yellow')  # 6. Ścianka
+    naklejki2 = generuj_naklejke(canvas, 390, 220, 'red')  # 2. Ścianka
+    naklejki3 = generuj_naklejke(canvas, 220, 220, 'green')  # 3. Ścianka
+    naklejki4 = generuj_naklejke(canvas, 220, 390, 'yellow')  # 4. Ścianka
+    naklejki5 = generuj_naklejke(canvas, 50, 220, 'orange')  # 5. Ścianka
+    naklejki6 = generuj_naklejke(canvas, 560, 220, 'blue')  # 6. Ścianka
+
+    wszystkie_naklejki = [naklejki1, naklejki2, naklejki3, naklejki4, naklejki5, naklejki6]
 
     # Uruchomienie pętli głównej aplikacji
-    dodaj_przycisk(root, canvas)
+    dodaj_przycisk(root, canvas, wszystkie_naklejki)
     dodaj_kwadracik(root)
 
     root.mainloop()
